@@ -1,0 +1,22 @@
+{
+  "name": "podcastplayer",
+  "version": "1.0.0",
+  "description": "Een Docker-gebaseerde webapp voor het afspelen van podcasts",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "keywords": [
+    "podcast",
+    "player",
+    "docker"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "express": "^4.17.1",
+    "fluent-ffmpeg": "^2.1.2",
+    "node-wav": "^0.0.2"
+  }
+}

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcastplayer</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --background-color: #f4f4f4;
+            --text-color: #333;
+            --card-background: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+        }
+
+        #searchForm {
+            display: flex;
+            margin-bottom: 30px;
+        }
+
+        #searchInput {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid var(--primary-color);
+            border-radius: 5px 0 0 5px;
+        }
+
+        #searchForm button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #searchForm button:hover {
+            background-color: #3a7bc8;
+        }
+
+        #results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .podcast {
+            background-color: var(--card-background);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .podcast:hover {
+            transform: translateY(-5px);
+        }
+
+        .podcast img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .podcast-info {
+            padding: 15px;
+        }
+
+        .podcast h3 {
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .episode {
+            background-color: var(--card-background);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .episode h3 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .episode audio {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        #loadMore, #backButton {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #loadMore:hover, #backButton:hover {
+            background-color: #e09612;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            #results {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+
+        .transcript-btn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .transcript {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Podcastplayer</h1>
+        <div id="app"></div>
+    </div>
+
+    <script>
+        const app = document.getElementById('app');
+        let allEpisodes = [];
+        let currentEpisodeIndex = 0;
+        const episodesPerLoad = 10;
+
+        function showHomePage() {
+            app.innerHTML = `
+                <form id="searchForm">
+                    <input type="text" id="searchInput" placeholder="Zoek podcasts..." required>
+                    <button type="submit">Zoeken</button>
+                </form>
+                <div id="results"></div>
+            `;
+
+            document.getElementById('searchForm').addEventListener('submit', handleSearch);
+        }
+
+        async function handleSearch(e) {
+            e.preventDefault();
+            const searchTerm = document.getElementById('searchInput').value;
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Bezig met zoeken...';
+
+            try {
+                const response = await fetch(`/search?term=${encodeURIComponent(searchTerm)}`);
+                const data = await response.json();
+                
+                if (data.results.length === 0) {
+                    resultsDiv.innerHTML = 'Geen resultaten gevonden.';
+                    return;
+                }
+
+                resultsDiv.innerHTML = data.results.map(podcast => `
+                    <div class="podcast" data-id="${podcast.collectionId}">
+                        <img src="${podcast.artworkUrl600 || podcast.artworkUrl100}" alt="${podcast.collectionName} artwork">
+                        <div class="podcast-info">
+                            <h3>${podcast.collectionName}</h3>
+                            <p>${podcast.artistName}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Fout bij het ophalen van zoekresultaten:', error);
+                resultsDiv.innerHTML = 'Er is een fout opgetreden bij het zoeken.';
+            }
+        }
+
+        async function showPodcastPage(podcastId) {
+            app.innerHTML = '<div id="episodes">Afleveringen laden...</div>';
+            try {
+                const response = await fetch(`/podcast/${podcastId}`);
+                const data = await response.json();
+                console.log('Ontvangen podcast data:', data);
+
+                if (!data.results || data.results.length <= 1) {
+                    app.innerHTML = '<p>Geen afleveringen gevonden voor deze podcast.</p>';
+                    return;
+                }
+
+                allEpisodes = data.results.slice(1);  // De eerste is de podcast zelf
+                currentEpisodeIndex = 0;
+                displayEpisodes();
+            } catch (error) {
+                console.error('Fout bij het ophalen van afleveringen:', error);
+                app.innerHTML = '<p>Er is een fout opgetreden bij het ophalen van afleveringen.</p>';
+            }
+        }
+
+        function displayEpisodes() {
+            const episodesToShow = allEpisodes.slice(currentEpisodeIndex, currentEpisodeIndex + episodesPerLoad);
+            const episodesHtml = episodesToShow.map(episode => `
+                <div class="episode">
+                    <h3>${episode.trackName}</h3>
+                    <p>Datum: ${new Date(episode.releaseDate).toLocaleDateString()}</p>
+                    <p>Duur: ${Math.floor(episode.trackTimeMillis / 60000)} minuten</p>
+                    ${episode.episodeUrl ? `<audio controls src="${episode.episodeUrl}"></audio>` : '<p>Geen audio beschikbaar</p>'}
+                    <button class="transcript-btn" data-audio="${episode.episodeUrl}">Genereer Transcript</button>
+                    <div class="transcript"></div>
+                </div>
+            `).join('');
+
+            app.innerHTML = `
+                <button id="backButton">Terug naar zoeken</button>
+                <h2>Afleveringen (${allEpisodes.length})</h2>
+                <div id="episodes">${episodesHtml}</div>
+            `;
+
+            if (currentEpisodeIndex + episodesPerLoad < allEpisodes.length) {
+                const loadMoreButton = document.createElement('button');
+                loadMoreButton.id = 'loadMore';
+                loadMoreButton.textContent = 'Meer afleveringen laden';
+                loadMoreButton.addEventListener('click', loadMoreEpisodes);
+                app.appendChild(loadMoreButton);
+            }
+
+            document.getElementById('backButton').addEventListener('click', showHomePage);
+        }
+
+        function loadMoreEpisodes() {
+            currentEpisodeIndex += episodesPerLoad;
+            displayEpisodes();
+        }
+
+        async function generateTranscript(audioUrl, transcriptDiv) {
+            transcriptDiv.textContent = 'Transcript genereren...';
+            try {
+                const response = await fetch(`/transcript?url=${encodeURIComponent(audioUrl)}`);
+                const data = await response.json();
+                if (data.transcript) {
+                    transcriptDiv.textContent = data.transcript;
+                } else {
+                    transcriptDiv.textContent = 'Kon geen transcript genereren.';
+                }
+            } catch (error) {
+                console.error('Fout bij het genereren van transcript:', error);
+                transcriptDiv.textContent = 'Er is een fout opgetreden bij het genereren van het transcript.';
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('transcript-btn')) {
+                const audioUrl = e.target.dataset.audio;
+                const transcriptDiv = e.target.nextElementSibling;
+                generateTranscript(audioUrl, transcriptDiv);
+            }
+        });
+
+        // Event delegation voor het afhandelen van podcast-klikken
+        document.addEventListener('click', (e) => {
+            const podcastDiv = e.target.closest('.podcast');
+            if (podcastDiv) {
+                const podcastId = podcastDiv.dataset.id;
+                showPodcastPage(podcastId);
+            }
+        });
+
+        // Start de app
+        showHomePage();
+    </script>
+</body>
+</html>
