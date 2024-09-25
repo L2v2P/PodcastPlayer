@@ -173,6 +173,18 @@
             height: 100%;
             background-color: #4CAF50;
         }
+
+        #showMoreBtn {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #showMoreBtn:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -198,11 +210,10 @@
         }
 
         function displayEpisodes() {
-            const episodesToShow = allEpisodes.slice(currentEpisodeIndex, currentEpisodeIndex + episodesPerLoad);
-            const episodesHtml = episodesToShow.map(episode => {
+            const episodesHtml = allEpisodes.map((episode, index) => {
                 const progress = getProgress(episode.trackId);
                 return `
-                    <div class="episode">
+                    <div class="episode" id="episode-${index}" style="display: ${index === 0 ? 'block' : 'none'};">
                         <h3>${episode.trackName}</h3>
                         <p>Datum: ${new Date(episode.releaseDate).toLocaleDateString()}</p>
                         <p>Duur: ${Math.floor(episode.trackTimeMillis / 60000)} minuten</p>
@@ -218,29 +229,51 @@
                 `;
             }).join('');
 
-            if (currentEpisodeIndex === 0) {
-                app.innerHTML = `
-                    <button id="backButton">Terug naar zoeken</button>
-                    <h2>Afleveringen (${allEpisodes.length})</h2>
-                    <div id="episodes">${episodesHtml}</div>
-                `;
-            } else {
-                document.getElementById('episodes').insertAdjacentHTML('beforeend', episodesHtml);
+            app.innerHTML = `
+                ${episodesHtml}
+                <button id="showMoreBtn" style="display: ${allEpisodes.length > 1 ? 'block' : 'none'};">Toon meer afleveringen</button>
+            `;
+
+            const showMoreBtn = document.getElementById('showMoreBtn');
+            if (showMoreBtn) {
+                showMoreBtn.addEventListener('click', toggleEpisodes);
             }
 
-            if (currentEpisodeIndex + episodesPerLoad < allEpisodes.length) {
-                if (!document.getElementById('loadMore')) {
-                    const loadMoreButton = document.createElement('button');
-                    loadMoreButton.id = 'loadMore';
-                    loadMoreButton.textContent = 'Meer afleveringen laden';
-                    loadMoreButton.addEventListener('click', loadMoreEpisodes);
-                    app.appendChild(loadMoreButton);
+            const audioElements = document.querySelectorAll('audio');
+            audioElements.forEach(audio => {
+                audio.addEventListener('play', function() {
+                    showOnlyPlayingEpisode(this);
+                });
+            });
+        }
+
+        function toggleEpisodes() {
+            const episodes = document.querySelectorAll('.episode');
+            episodes.forEach((episode, index) => {
+                if (index !== 0) {
+                    episode.style.display = episode.style.display === 'none' ? 'block' : 'none';
                 }
-            } else if (document.getElementById('loadMore')) {
-                document.getElementById('loadMore').remove();
-            }
+            });
+            const showMoreBtn = document.getElementById('showMoreBtn');
+            showMoreBtn.textContent = showMoreBtn.textContent === 'Toon meer afleveringen' ? 'Verberg afleveringen' : 'Toon meer afleveringen';
+        }
 
-            document.getElementById('backButton').addEventListener('click', showHomePage);
+        function showOnlyPlayingEpisode(playingAudio) {
+            const episodes = document.querySelectorAll('.episode');
+            episodes.forEach((episode, index) => {
+                const audio = episode.querySelector('audio');
+                if (audio === playingAudio) {
+                    episode.style.display = 'block';
+                } else {
+                    episode.style.display = 'none';
+                    if (audio) audio.pause();
+                }
+            });
+            const showMoreBtn = document.getElementById('showMoreBtn');
+            if (showMoreBtn) {
+                showMoreBtn.style.display = 'block';
+                showMoreBtn.textContent = 'Toon meer afleveringen';
+            }
         }
 
         function showHomePage() {
