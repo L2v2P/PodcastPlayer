@@ -161,6 +161,18 @@
             border-radius: 5px;
             white-space: pre-wrap;
         }
+
+        .progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            height: 5px;
+            margin-top: 5px;
+        }
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+        }
     </style>
 </head>
 <body>
@@ -174,6 +186,62 @@
         let allEpisodes = [];
         let currentEpisodeIndex = 0;
         const episodesPerLoad = 10;
+
+        function getProgress(trackId) {
+            const progress = localStorage.getItem(`progress_${trackId}`);
+            return progress ? parseFloat(progress) : 0;
+        }
+
+        function saveProgress(trackId, currentTime, duration) {
+            const progress = (currentTime / duration) * 100;
+            localStorage.setItem(`progress_${trackId}`, progress.toFixed(2));
+        }
+
+        function displayEpisodes() {
+            const episodesToShow = allEpisodes.slice(currentEpisodeIndex, currentEpisodeIndex + episodesPerLoad);
+            const episodesHtml = episodesToShow.map(episode => {
+                const progress = getProgress(episode.trackId);
+                return `
+                    <div class="episode">
+                        <h3>${episode.trackName}</h3>
+                        <p>Datum: ${new Date(episode.releaseDate).toLocaleDateString()}</p>
+                        <p>Duur: ${Math.floor(episode.trackTimeMillis / 60000)} minuten</p>
+                        ${episode.episodeUrl ? `
+                            <audio controls src="${episode.episodeUrl}" data-track-id="${episode.trackId}">
+                                Your browser does not support the audio element.
+                            </audio>
+                            <div class="progress-bar">
+                                <div class="progress" style="width: ${progress}%"></div>
+                            </div>
+                        ` : '<p>Geen audio beschikbaar</p>'}
+                    </div>
+                `;
+            }).join('');
+
+            if (currentEpisodeIndex === 0) {
+                app.innerHTML = `
+                    <button id="backButton">Terug naar zoeken</button>
+                    <h2>Afleveringen (${allEpisodes.length})</h2>
+                    <div id="episodes">${episodesHtml}</div>
+                `;
+            } else {
+                document.getElementById('episodes').insertAdjacentHTML('beforeend', episodesHtml);
+            }
+
+            if (currentEpisodeIndex + episodesPerLoad < allEpisodes.length) {
+                if (!document.getElementById('loadMore')) {
+                    const loadMoreButton = document.createElement('button');
+                    loadMoreButton.id = 'loadMore';
+                    loadMoreButton.textContent = 'Meer afleveringen laden';
+                    loadMoreButton.addEventListener('click', loadMoreEpisodes);
+                    app.appendChild(loadMoreButton);
+                }
+            } else if (document.getElementById('loadMore')) {
+                document.getElementById('loadMore').remove();
+            }
+
+            document.getElementById('backButton').addEventListener('click', showHomePage);
+        }
 
         function showHomePage() {
             app.innerHTML = `
@@ -238,36 +306,6 @@
             }
         }
 
-        function displayEpisodes() {
-            const episodesToShow = allEpisodes.slice(currentEpisodeIndex, currentEpisodeIndex + episodesPerLoad);
-            const episodesHtml = episodesToShow.map(episode => `
-                <div class="episode">
-                    <h3>${episode.trackName}</h3>
-                    <p>Datum: ${new Date(episode.releaseDate).toLocaleDateString()}</p>
-                    <p>Duur: ${Math.floor(episode.trackTimeMillis / 60000)} minuten</p>
-                    ${episode.episodeUrl ? `<audio controls src="${episode.episodeUrl}"></audio>` : '<p>Geen audio beschikbaar</p>'}
-                    <button class="transcript-btn" data-audio="${episode.episodeUrl}">Genereer Transcript</button>
-                    <div class="transcript"></div>
-                </div>
-            `).join('');
-
-            app.innerHTML = `
-                <button id="backButton">Terug naar zoeken</button>
-                <h2>Afleveringen (${allEpisodes.length})</h2>
-                <div id="episodes">${episodesHtml}</div>
-            `;
-
-            if (currentEpisodeIndex + episodesPerLoad < allEpisodes.length) {
-                const loadMoreButton = document.createElement('button');
-                loadMoreButton.id = 'loadMore';
-                loadMoreButton.textContent = 'Meer afleveringen laden';
-                loadMoreButton.addEventListener('click', loadMoreEpisodes);
-                app.appendChild(loadMoreButton);
-            }
-
-            document.getElementById('backButton').addEventListener('click', showHomePage);
-        }
-
         function loadMoreEpisodes() {
             currentEpisodeIndex += episodesPerLoad;
             displayEpisodes();
@@ -305,6 +343,23 @@
                 showPodcastPage(podcastId);
             }
         });
+
+        document.addEventListener('play', function(e) {
+            if(e.target.tagName === 'AUDIO') {
+                const trackId = e.target.dataset.trackId;
+                const progress = getProgress(trackId);
+                e.target.currentTime = (progress / 100) * e.target.duration;
+            }
+        }, true);
+
+        document.addEventListener('timeupdate', function(e) {
+            if(e.target.tagName === 'AUDIO') {
+                const trackId = e.target.dataset.trackId;
+                saveProgress(trackId, e.target.currentTime, e.target.duration);
+                const progressBar = e.target.nextElementSibling.firstElementChild;
+                progressBar.style.width = `${(e.target.currentTime / e.target.duration) * 100}%`;
+            }
+        }, true);
 
         // Start de app
         showHomePage();
