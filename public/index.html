@@ -33,6 +33,7 @@
                 const progress = getProgress(episode.trackId);
                 return `
                     <div class="episode" id="episode-${index}" style="display: ${index === 0 ? 'block' : 'none'};">
+                        <img src="${episode.artworkUrl600 || episode.artworkUrl100}" alt="${episode.trackName} artwork" class="episode-artwork" style="display: none;">
                         <h3>${episode.trackName}</h3>
                         <p>Datum: ${new Date(episode.releaseDate).toLocaleDateString()}</p>
                         <p>Duur: ${Math.floor(episode.trackTimeMillis / 60000)} minuten</p>
@@ -81,11 +82,14 @@
             const episodes = document.querySelectorAll('.episode');
             episodes.forEach((episode, index) => {
                 const audio = episode.querySelector('audio');
+                const artwork = episode.querySelector('.episode-artwork');
                 if (audio === playingAudio) {
                     episode.style.display = 'block';
+                    if (artwork) artwork.style.display = 'block';
                 } else {
                     episode.style.display = 'none';
                     if (audio) audio.pause();
+                    if (artwork) artwork.style.display = 'none';
                 }
             });
             const showMoreBtn = document.getElementById('showMoreBtn');
@@ -201,6 +205,11 @@
                 const trackId = e.target.dataset.trackId;
                 const progress = getProgress(trackId);
                 e.target.currentTime = (progress / 100) * e.target.duration;
+                
+                // Toon de afbeelding van de afspelende aflevering
+                const episode = e.target.closest('.episode');
+                const artwork = episode.querySelector('.episode-artwork');
+                if (artwork) artwork.style.display = 'block';
             }
         }, true);
 

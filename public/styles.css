@@ -178,3 +178,9 @@ h1 {
 #showMoreBtn:hover {
     background-color: #45a049;
 }
+
+.episode-artwork {
+    max-width: 200px;
+    height: auto;
+    margin-bottom: 10px;
+}
