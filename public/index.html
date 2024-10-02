@@ -183,6 +183,52 @@
             }
         }
 
+        function logApiCall(url, response) {
+            console.log('logApiCall aangeroepen met URL:', url);
+            const apiLogs = document.getElementById('apiLogs');
+            console.log('Logging API call:', url, response);
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <strong>Verzoek URL:</strong>
+                <pre>${url}</pre>
+                <strong>Antwoord:</strong>
+                <pre>${JSON.stringify(response, null, 2)}</pre>
+            `;
+            document.getElementById('apiLogs').prepend(logEntry);
+        }
+
+        // Pas de fetchPodcasts functie aan
+        async function fetchPodcasts(url) {
+            console.log('fetchPodcasts aangeroepen met URL:', url);
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                logApiCall(url, data); // Log de API-aanroep
+                return data;
+            } catch (error) {
+                console.error('Error fetching podcasts:', error);
+                logApiCall(url, { error: error.message }); // Log de fout
+                return null;
+            }
+        }
+
+        // Pas de fetchEpisodes functie aan
+        async function fetchEpisodes(podcastId) {
+            console.log('fetchEpisodes aangeroepen met podcastId:', podcastId);
+            const url = `https://itunes.apple.com/lookup?id=${podcastId}&entity=podcastEpisode&limit=10`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                logApiCall(url, data); // Log de API-aanroep
+                return data.results.slice(1); // Exclude the first result (podcast info)
+            } catch (error) {
+                console.error('Error fetching episodes:', error);
+                logApiCall(url, { error: error.message }); // Log de fout
+                return [];
+            }
+        }
+
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('transcript-btn')) {
                 const audioUrl = e.target.dataset.audio;
