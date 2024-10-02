@@ -12,7 +12,15 @@
         <div id="app"></div>
     </div>
 
+    <div id="apiLogger" class="api-logger">
+        <h3>API Verzoeken en Antwoorden</h3>
+        <div id="apiLogs"></div>
+    </div>
+
+    <script src="path/to/your/script.js"></script>
     <script>
+        alert('Script wordt uitgevoerd');
+        console.log('Script is geladen en wordt uitgevoerd');
         const app = document.getElementById('app');
         let allEpisodes = [];
         let currentEpisodeIndex = 0;
@@ -109,6 +117,10 @@
             `;
 
             document.getElementById('searchForm').addEventListener('submit', handleSearch);
+            console.log('Event listener voor zoekformulier toegevoegd');
+
+            document.getElementById('loadMore').addEventListener('click', loadMoreResults);
+            console.log('Event listener voor "Laad meer" knop toegevoegd');
         }
 
         async function handleSearch(e) {
